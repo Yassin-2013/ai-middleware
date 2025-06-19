@@ -1,34 +1,28 @@
-// index.js
+const { Configuration, OpenAIApi } = require("openai");
 
-require('dotenv').config();
-const express    = require('express');
-const bodyParser = require('body-parser');
-const cors       = require('cors');
-const { Configuration, OpenAIApi } = require('openai');
-
-const app  = express();
-const port = process.env.PORT || 3000;
-
-// 1. تفعيل CORS للجميع قبل أي نقطة نهاية
-app.use(cors({ origin: '*' }));
-
-// 2. Middleware الأخرى
-app.use(bodyParser.json());
-
-// 3. إعداد OpenAI
 const config = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
 });
 const openai = new OpenAIApi(config);
 
-/**
- * POST /api/analyze
- */
-app.post('/api/analyze', async (req, res) => {
-  try {
-    const { userId, answers } = req.body;
+module.exports = async (req, res) => {
+  const { method, url } = req;
 
-    const prompt = `
+  // السماح بـ CORS للجميع
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (method === "OPTIONS") {
+    res.status(200).end();
+    return;
+  }
+
+  try {
+    if (method === "POST" && url.endsWith("/analyze")) {
+      const { userId, answers } = req.body;
+
+      const prompt = `
 You are an IQ test analyst. The user (ID: ${userId}) completed an IQ test:
 ${answers.map(a => `- Q${a.questionId}: ${a.correct ? 'Correct' : 'Incorrect'}, time ${a.responseTime}s`).join('\n')}
 Please:
@@ -40,54 +34,40 @@ Please:
 Respond in JSON with: iqScore, classification, feedback, recommendations.
 `;
 
-    const completion = await openai.createChatCompletion({
-      model: "gpt-4",
-      messages: [
-        { role: "system", content: "You are a helpful assistant." },
-        { role: "user",   content: prompt }
-      ],
-      temperature: 0.7,
-      max_tokens: 500
-    });
+      const completion = await openai.createChatCompletion({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: "You are a helpful assistant." },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.7,
+        max_tokens: 500,
+      });
 
-    const analysis = JSON.parse(completion.data.choices[0].message.content.trim());
-    res.json({ success: true, analysis });
+      const analysis = JSON.parse(
+        completion.data.choices[0].message.content.trim()
+      );
+      res.status(200).json({ success: true, analysis });
 
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, error: err.message });
+    } else if (method === "POST" && url.endsWith("/chat")) {
+      const { messages } = req.body;
+
+      const completion = await openai.createChatCompletion({
+        model: "gpt-4",
+        messages,
+        temperature: 0.7,
+        max_tokens: 1000,
+      });
+
+      const reply = completion.data.choices[0].message;
+      res.status(200).json({ success: true, reply });
+
+    } else {
+      res.status(404).json({ success: false, message: "Invalid endpoint" });
+    }
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: error.message });
   }
-});
-
-/**
- * POST /api/chat
- */
-app.post('/api/chat', async (req, res) => {
-  try {
-    const { messages } = req.body;
-
-    const completion = await openai.createChatCompletion({
-      model: "gpt-4",
-      messages,
-      temperature: 0.7,
-      max_tokens: 1000
-    });
-
-    const reply = completion.data.choices[0].message;
-    res.json({ success: true, reply });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// نقطة النهاية الافتراضية
-app.get('/', (req, res) => {
-  res.send('IQ Test & Chat Middleware is up and running.');
-});
-
-// تشغيل الخادم
-app.listen(port, () => {
-  console.log(`Server listening on port ${port}`);
-});
+};
