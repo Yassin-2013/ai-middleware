@@ -7,4 +7,4 @@
     { "src": "/(.*)", "dest": "index.js" }
   ]
 }
-Add vercel.json to treat index.js as Node server
+
