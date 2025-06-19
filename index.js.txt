@@ -9,33 +9,25 @@ const { Configuration, OpenAIApi } = require('openai');
 const app  = express();
 const port = process.env.PORT || 3000;
 
-// إعداد OpenAI
+// 1. تفعيل CORS للجميع قبل أي نقطة نهاية
+app.use(cors({ origin: '*' }));
+
+// 2. Middleware الأخرى
+app.use(bodyParser.json());
+
+// 3. إعداد OpenAI
 const config = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
 });
 const openai = new OpenAIApi(config);
 
-// ✅✅ Middleware - تفعيل CORS لجميع المواقع (مهم جدًا!)
-app.use(cors({ origin: '*' }));
-app.use(bodyParser.json());
-
 /**
  * POST /api/analyze
- * يتوقع JSON payload مثل:
- * {
- *   "userId": "user-123",
- *   "answers": [
- *     { "questionId": 1, "correct": true,  "responseTime": 12 },
- *     { "questionId": 2, "correct": false, "responseTime": 20 },
- *     ...
- *   ]
- * }
  */
 app.post('/api/analyze', async (req, res) => {
   try {
     const { userId, answers } = req.body;
 
-    // بناء مدخل GPT-4
     const prompt = `
 You are an IQ test analyst. The user (ID: ${userId}) completed an IQ test:
 ${answers.map(a => `- Q${a.questionId}: ${a.correct ? 'Correct' : 'Incorrect'}, time ${a.responseTime}s`).join('\n')}
@@ -67,16 +59,8 @@ Respond in JSON with: iqScore, classification, feedback, recommendations.
   }
 });
 
-
 /**
  * POST /api/chat
- * يتوقع JSON payload مثل:
- * {
- *   "messages": [
- *     { "role": "system", "content": "You are a helpful assistant." },
- *     { "role": "user",   "content": "Hello!" }
- *   ]
- * }
  */
 app.post('/api/chat', async (req, res) => {
   try {
