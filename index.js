@@ -1,7 +1,8 @@
 // index.js
 
-require('dotenv').config();
-const { OpenAI } = require("openai");  // استيراد الفئة الرئيسية
+// ❌ أزلنا require('dotenv').config();
+// const { Configuration, OpenAIApi } = require("openai");
+const { OpenAI } = require("openai");  // واجهة العميل الحديثة
 
 // أنشئ مثيلاً من عميل OpenAI
 const openai = new OpenAI({
