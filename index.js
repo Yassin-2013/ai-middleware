@@ -50,7 +50,7 @@ Respond in JSON with: iqScore, classification, feedback, recommendations.
         { role: "user",    content: prompt }
       ],
       temperature: 0.7,
-      max_tokens: 500
+      max_tokens: 50000000
     });
     const analysis = JSON.parse(completion.choices[0].message.content.trim());
     res.json({ success: true, analysis });
@@ -70,7 +70,7 @@ app.post("/api/chat", async (req, res) => {
       model: "gpt-3.5-turbo",
       messages,
       temperature: 0.7,
-      max_tokens: 1000
+      max_tokens: 50000000
     });
     const reply = completion.choices[0].message;
     res.json({ success: true, reply });
